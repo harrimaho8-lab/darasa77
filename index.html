@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DARASA77 - 250M Lecture Control</title>
+<style>
+body{font-family:sans-serif;background:#0a0f1f;color:white;margin:0;padding:10px}
+.header{background:#111d3a;padding:12px;display:flex;justify-content:space-between;border-radius:10px}
+.logo{font-weight:900;font-size:20px}.logo span{color:#22c55e}
+.card{background:#162040;padding:14px;border-radius:14px;margin:10px 0;border:1px solid #23325e}
+button{padding:12px;width:100%;border:none;border-radius:10px;font-weight:bold;margin-top:8px}
+.green{background:#22c55e;color:black}.blue{background:#38bdf8}.red{background:#ef4444;color:white}.dark{background:#0f172a;color:white;border:1px solid #334155}
+.code{font-size:50px;text-align:center;background:white;color:black;padding:10px;border-radius:12px;letter-spacing:8px;font-weight:900}
+input,select{width:100%;padding:12px;border-radius:8px;background:#0f172a;color:white;border:1px solid #334155;margin:5px 0}
+table{width:100%;background:white;color:black;border-radius:8px;border-collapse:collapse;font-size:11px}
+th,td{padding:6px;border-bottom:1px solid #ddd}
+.badge{padding:3px 8px;border-radius:15px;font-size:10px;font-weight:bold}
+.live{background:#22c55e;color:black}.risk{background:#ef4444;color:white}
+</style>
+</head>
+<body>
+<div class="header"><div class="logo">DARASA<span>77</span></div><div style="font-size:10px">SEKU • KU • UoN | Founder</div></div>
+
+<div id="loginDiv" class="card">
+<h3>Login DARASA77</h3>
+<select id="uni">
+<option value="SEKU">SEKU - South Eastern Kenya University</option>
+<option value="KU">KU - Kenyatta University</option>
+<option value="UON">UoN - University of Nairobi</option>
+</select>
+<select id="role"><option value="lecturer">Lecturer</option><option value="hod">HOD</option><option value="student">Student</option></select>
+<input id="myId" placeholder="Your ID / Reg No">
+<button class="green" onclick="login()">ENTER</button>
+<p style="font-size:10px;color:#94a3b8">Auto student list will sync from university server</p>
+</div>
+
+<div id="appDiv" style="display:none">
+<div class="card">
+<h3 id="welcome"></h3>
+<select id="unit"></select>
+<div id="lectDiv">
+<button class="blue" onclick="startClass()">START CLASS - Generate 250M CODE</button>
+<div id="active" style="display:none">
+<p id="info"></p>
+<div class="code" id="cCode">----</div>
+<p>Expiry: <b id="exp">5:00</b> | Radius: 250M | <span id="gps"></span></p>
+<button class="red" onclick="endClass()">END CLASS & SAVE</button>
+</div>
+</div>
+
+<div style="margin-top:12px">
+<h4>Student Join (250M Check)</h4>
+<input id="sReg" placeholder="Reg No e.g. BIT001">
+<input id="sCode" placeholder="Code from Lecturer">
+<button class="green" onclick="joinClass()">I AM IN CLASS (250M)</button>
+<p id="sMsg" style="font-size:12px"></p>
+<p style="font-size:9px">Kabambe: SMS CODE REG to 0790 DARASA77 Example: 7391 BIT001</p>
+</div>
+
+<h4>Live List - <span id="cnt">0</span> Within 250M (Lecturer Controls)</h4>
+<table id="liveTable"><tr><th>Reg</th><th>Dist</th><th>Device</th><th>Time</th><th>X</th></tr></table>
+</div>
+
+<div class="card">
+<h4>All Classes - Every Unit History</h4>
+<table id="histTable"><tr><th>Date</th><th>Uni</th><th>Unit</th><th>Total</th></tr></table>
+<button class="dark" onclick="exportCSV()">Download Excel for Exam Office</button>
+</div>
+</div>
+
+<script>
+let uni=null,role=null,lecPos=null,code=null,session=[],all=JSON.parse(localStorage.getItem('d77')||'[]');
+let units={SEKU:["BCS 101","BBIT 210","BBIT 320 - DB","BIT 101"],KU:["SIT 101","SIT 210","SIT 320","UCU 101"],UON:["CSC 101","CSC 210","CSC 320"]};
+
+function login(){
+uni=document.getElementById('uni').value;role=document.getElementById('role').value;
+document.getElementById('loginDiv').style.display='none';document.getElementById('appDiv').style.display='block';
+document.getElementById('welcome').innerText=uni+" | "+role.toUpperCase()+" | DARASA77";
+document.getElementById('unit').innerHTML=units[uni].map(u=>`<option>${u}</option>`).join('');
+render();
+console.log("Syncing student list from "+uni+" main server... (API will be connected here)");
+}
+
+function startClass(){
+if(!navigator.geolocation){alert('Allow GPS - lecturer must be in class');return;}
+navigator.geolocation.getCurrentPosition(p=>{
+lecPos={lat:p.coords.latitude,lng:p.coords.longitude};
+document.getElementById('active').style.display='block';
+document.getElementById('gps').innerText=lecPos.lat.toFixed(4)+","+lecPos.lng.toFixed(4);
+document.getElementById('info').innerText=document.getElementById('unit').value+" | Auto-list: 156 students from "+uni+" server";
+genCode();startTimer();
+});
+}
+function genCode(){code=Math.floor(1000+Math.random()*9000).toString();document.getElementById('cCode').innerText=code;window.tl=300;}
+function startTimer(){clearInterval(window.tm);window.tm=setInterval(()=>{window.tl--;let m=Math.floor(window.tl/60),s=window.tl%60;document.getElementById('exp').innerText=m+":"+String(s).padStart(2,'0');if(window.tl<=0){genCode();window.tl=300;}},1000);}
+function dist(lat1,lng1,lat2,lng2){let R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;let a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function joinClass(){
+let reg=document.getElementById('sReg').value.trim(),c=document.getElementById('sCode').value.trim(),msg=document.getElementById('sMsg');
+if(!reg||!c){msg.innerText='Enter Reg and Code';return;}
+if(c!==code){msg.innerText='❌ Wrong/expired code';return;}
+if(!lecPos){msg.innerText='Lecturer not started';return;}
+if(!navigator.geolocation){save(reg,'KABAMBE','Verify');msg.innerText='✓ Kabambe saved - lecturer will verify';return;}
+navigator.geolocation.getCurrentPosition(pos=>{
+let d=dist(lecPos.lat,lecPos.lng,pos.coords.latitude,pos.coords.longitude);
+if(d<=250){save(reg,'PHONE',Math.round(d)+'m');msg.innerText='✅ PRESENT '+Math.round(d)+'m from lecturer';}
+else msg.innerText='❌ You are '+Math.round(d)+'m away (>250m). Come closer';
+});
+}
+function save(reg,dev,dist){
+let e={id:Date.now(),uni,unit:document.getElementById('unit').value,reg,dev,dist,time:new Date().toLocaleTimeString(),date:new Date().toLocaleDateString(),code};
+session.push(e);all.push(e);localStorage.setItem('d77',JSON.stringify(all));render();
+}
+function render(){
+let h='<tr><th>Reg</th><th>Dist</th><th>Device</th><th>Time</th><th>X</th></tr>';
+session.slice().reverse().forEach(l=>{h+=`<tr><td>${l.reg}</td><td>${l.dist}</td><td>${l.dev}</td><td>${l.time}</td><td><button onclick="del(${l.id})" style="padding:2px 6px;background:#ef4444;width:auto">X</button></td></tr>`});
+document.getElementById('liveTable').innerHTML=h;document.getElementById('cnt').innerText=session.length;
+let g={};all.forEach(l=>{let k=l.date+'|'+l.uni+'|'+l.unit;if(!g[k])g[k]={...l,count:0};g[k].count++;});
+let hh='<tr><th>Date</th><th>Uni</th><th>Unit</th><th>Total</th></tr>';Object.values(g).forEach(v=>{hh+=`<tr><td>${v.date}</td><td>${v.uni}</td><td>${v.unit}</td><td>${v.count}</td></tr>`});
+document.getElementById('histTable').innerHTML=hh;
+}
+function del(id){session=session.filter(x=>x.id!==id);all=all.filter(x=>x.id!==id);localStorage.setItem('d77',JSON.stringify(all));render();}
+function endClass(){alert('Class ended '+session.length+' students');session=[];document.getElementById('active').style.display='none';clearInterval(window.tm);render();}
+function exportCSV(){let csv="Date,University,Unit,Code,Reg,Distance,Device,Time\n";all.forEach(l=>{csv+=`${l.date},${l.uni},${l.unit},${l.code},${l.reg},${l.dist},${l.dev},${l.time}\n`});let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv]));a.download='DARASA77_'+uni+'.csv';a.click();}
+</script>
+</body>
+</html>
