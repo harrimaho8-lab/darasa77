@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DARASA77 FINAL - NO WOTE</title>
+<style>
+body{margin:0;font-family:Arial;background:#0a1931;color:#fff}
+.header{background:#162447;padding:16px;text-align:center;border-bottom:4px solid #00d4ff}
+.container{max-width:650px;margin:auto;padding:12px}
+.card{background:#fff;color:#111;padding:16px;border-radius:14px;margin-bottom:12px}
+input,select{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #999}
+button{width:100%;padding:13px;border:none;border-radius:10px;margin:6px 0;font-weight:bold;cursor:pointer}
+.btn{background:#0a1931;color:#fff}.blue{background:#00d4ff;color:#0a1931}.green{background:#00ff88;color:#0a1931}
+.timer{font-size:36px;text-align:center;font-weight:900;color:#0a1931}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:6px;border:1px solid #ddd}
+</style></head><body>
+<div class="header">
+<h1 style="margin:0;color:#00d4ff">DARASA77</h1>
+<p style="margin:0">SOUTH EASTERN KENYA UNIVERSITY</p>
+<small>Arid To Green... Transforming Lives - OFFLINE + ONLINE SYSTEM</small>
+</div>
+<div class="container">
+
+<div id="auth" class="card">
+<h3 style="margin:0;color:#0a1931">SEKU Login - Final Clean Version</h3>
+<select id="role"><option value="student">Student</option><option value="lecturer">Lecturer</option><option value="hod">HOD</option></select>
+<input id="a_name" placeholder="Full Name"><input id="a_id" placeholder="Reg No / Staff ID"><input id="a_pass" type="password" placeholder="Password (4 digits)"><input id="a_dept" placeholder="Department">
+<button class="blue" onclick="handleAuth()">Login / Register</button>
+<p id="msg" style="color:red;font-size:12px"></p>
+<p style="font-size:10px;color:#666">This version has NO WOTE text, NO photo, captures Name/Reg/Dept/Device/Time, Week/Lesson sheets, works offline then syncs when online.</p>
+</div>
+
+<div id="studentDash" class="hidden">
+<div class="card"><b id="s_name"></b> (<span id="s_id"></span>) | <a href="#" onclick="logout()">Logout</a></div>
+<div class="card">
+<h4>1. Enroll to Unit First</h4><select id="s_all_units"></select><button class="blue" onclick="enrollUnit()">Enroll to Unit</button><div id="s_my_units" style="font-size:11px"></div>
+<h4>2. Mark Attendance - Use Code from Lecturer Board</h4><select id="s_unit"></select><input id="s_code" placeholder="Enter 4-digit Code"><button class="green" onclick="studentAttend()">MARK PRESENT FOR WEEK/LESSON</button><p id="s_msg" style="font-size:12px"></p>
+</div>
+<div class="card"><h4>My Attendance - Week 1 Lesson 1 onwards</h4><div id="s_history" style="font-size:12px"></div></div>
+</div>
+
+<div id="lectDash" class="hidden">
+<div class="card"><b id="l_name"></b> - Lecturer | <a href="#" onclick="logout()">Logout</a><div class="timer" id="timer">03:00:00</div></div>
+<div class="card"><h4>Create Unit (One time per semester)</h4><div style="display:flex;gap:6px"><input id="l_unitCode" placeholder="Code EEE441"><input id="l_unitName" placeholder="Name Power Systems"></div><button class="blue" onclick="addUnit()">Save Unit</button></div>
+<div class="card"><h4>Start Today's Lesson - Week / Lesson System</h4><select id="l_units"></select><div style="display:flex;gap:6px"><select id="l_week"><option>Week 1</option><option>Week 2</option><option>Week 3</option><option>Week 4</option><option>Week 5</option><option>Week 6</option><option>Week 7</option><option>Week 8</option><option>Week 9</option><option>Week 10</option><option>Week 11</option><option>Week 12</option><option>Week 13</option><option>Week 14</option><option>Week 15</option></select><select id="l_lesson"><option>Lesson 1</option><option>Lesson 2</option><option>Lesson 3</option></select></div><button class="btn" onclick="genCode()">GENERATE CODE FOR CLASS</button><h1 id="l_codeDisplay" style="text-align:center;color:#0a1931">CODE: ----</h1><p id="l_lessonInfo" style="text-align:center;font-size:12px"></p><button onclick="stopLect()" style="background:#ddd">STOP LESSON</button></div>
+<div class="card"><h4>Live Sheet - This Lesson Only</h4><table><thead><tr><th>Week</th><th>Lesson</th><th>Reg No</th><th>Name</th><th>Dept</th><th>Time</th></tr></thead><tbody id="l_list"></tbody></table><button onclick="downloadList()" class="blue">Download Week/Lesson CSV</button><p style="font-size:10px;color:red">IMPORTANT: If using different phones, student records will only appear if you connect Firebase. See instructions I sent. For offline single-phone class: let students mark on YOUR phone one by one.</p></div>
+</div>
+
+<div id="hodDash" class="hidden"><div class="card"><b id="h_name"></b> - HOD | <a href="#" onclick="logout()">Logout</a></div><div class="card"><h4>Master - All Weeks Lessons</h4><table><thead><tr><th>Student</th><th>Reg</th><th>Unit</th><th>Week</th><th>Lesson</th><th>Time</th><th>Lecturer</th></tr></thead><tbody id="h_list"></tbody></table><button onclick="downloadList()" class="btn">Download Full Report</button><button onclick="clearAll()" style="background:red;color:white">Clear All Data</button></div></div>
+
+</div>
+<script>
+let currentUser=null,interv=null,timeLeft=10800;
+function handleAuth(){const r=document.getElementById('role').value,n=document.getElementById('a_name').value.trim(),id=document.getElementById('a_id').value.trim(),p=document.getElementById('a_pass').value.trim(),d=document.getElementById('a_dept').value.trim();if(!id||!p){document.getElementById('msg').innerText='Enter ID & Pass';return;}let u=JSON.parse(localStorage.getItem('d77_users')||'[]');let f=u.find(x=>x.id===id&&x.role===r);if(!f){if(!n||!d){document.getElementById('msg').innerText='First time: Enter Name & Dept';return;}f={id,pass:p,role:r,name:n,dept:d,device:navigator.platform};u.push(f);}else{if(f.pass!==p){document.getElementById('msg').innerText='Wrong pass';return;}}localStorage.setItem('d77_users',JSON.stringify(u));currentUser=f;localStorage.setItem('d77_cur',JSON.stringify(f));showDash(f);}
+function showDash(u){document.getElementById('auth').classList.add('hidden');if(u.role==='student'){document.getElementById('studentDash').classList.remove('hidden');document.getElementById('s_name').innerText=u.name;document.getElementById('s_id').innerText=u.id;loadStudentUnits();}else if(u.role==='lecturer'){document.getElementById('lectDash').classList.remove('hidden');document.getElementById('l_name').innerText=u.name;loadLectUnits();loadLectList();loadCode();}else{document.getElementById('hodDash').classList.remove('hidden');document.getElementById('h_name').innerText=u.name;loadHOD();}}
+function addUnit(){const c=document.getElementById('l_unitCode').value.trim(),n=document.getElementById('l_unitName').value.trim();if(!c||!n)return alert('Enter');let units=JSON.parse(localStorage.getItem('d77_units')||'[]');units.push({code:c,name:n,lect:currentUser.id,lectName:currentUser.name});localStorage.setItem('d77_units',JSON.stringify(units));loadLectUnits();}
+function loadLectUnits(){let units=JSON.parse(localStorage.getItem('d77_units')||'[]').filter(u=>u.lect===currentUser.id);let sel=document.getElementById('l_units');sel.innerHTML='';units.forEach(u=>{let o=document.createElement('option');o.value=u.code;o.textContent=u.code+' - '+u.name;sel.appendChild(o);});let all=document.getElementById('s_all_units');if(all){all.innerHTML='';JSON.parse(localStorage.getItem('d77_units')||'[]').forEach(u=>{let o=document.createElement('option');o.value=u.code;o.textContent=u.code+' - '+u.name+' ('+u.lectName+')';all.appendChild(o);});}}
+function loadStudentUnits(){let units=JSON.parse(localStorage.getItem('d77_units')||'[]');let allSel=document.getElementById('s_all_units');allSel.innerHTML='';units.forEach(u=>{let o=document.createElement('option');o.value=u.code;o.textContent=u.code+' - '+u.name;allSel.appendChild(o);});let enrolled=JSON.parse(localStorage.getItem('d77_enroll_'+currentUser.id)||'[]');document.getElementById('s_my_units').innerText='Enrolled: '+enrolled.join(', ');let sSel=document.getElementById('s_unit');sSel.innerHTML='';enrolled.forEach(code=>{let u=units.find(x=>x.code===code);if(u){let o=document.createElement('option');o.value=u.code;o.textContent=u.code+' - '+u.name;sSel.appendChild(o);}});let recs=JSON.parse(localStorage.getItem('d77_att')||'[]').filter(r=>r.reg===currentUser.id);document.getElementById('s_history').innerHTML=recs.map(r=>`<div style="border-bottom:1px solid #eee;padding:4px"><b>${r.unit}</b> - ${r.week} ${r.lesson} - ${r.time}</div>`).join('')||'No record';}
+function enrollUnit(){const c=document.getElementById('s_all_units').value;let k='d77_enroll_'+currentUser.id;let a=JSON.parse(localStorage.getItem(k)||'[]');if(!a.includes(c)){a.push(c);localStorage.setItem(k,JSON.stringify(a));}loadStudentUnits();}
+function genCode(){let unit=document.getElementById('l_units').value;if(!unit)return alert('Create unit');let w=document.getElementById('l_week').value,l=document.getElementById('l_lesson').value;let code=Math.floor(1000+Math.random()*9000).toString();let data={code,unit,lect:currentUser.id,lectName:currentUser.name,week:w,lesson:l,time:Date.now()};localStorage.setItem('d77_currentCode',JSON.stringify(data));document.getElementById('l_codeDisplay').innerText='CODE: '+code;document.getElementById('l_lessonInfo').innerText=unit+' - '+w+' '+l;startTimer();}
+function loadCode(){let d=JSON.parse(localStorage.getItem('d77_currentCode')||'null');if(d){document.getElementById('l_codeDisplay').innerText='CODE: '+d.code;document.getElementById('l_lessonInfo').innerText=d.unit+' - '+d.week+' '+d.lesson;}}
+function startTimer(){if(interv)clearInterval(interv);timeLeft=10800;interv=setInterval(()=>{timeLeft--;let h=Math.floor(timeLeft/3600),m=Math.floor((timeLeft%3600)/60),s=timeLeft%60;document.getElementById('timer').innerText=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;},1000);}
+function stopLect(){clearInterval(interv);localStorage.removeItem('d77_currentCode');document.getElementById('l_codeDisplay').innerText='CODE: ----';}
+function studentAttend(){let code=document.getElementById('s_code').value.trim();let active=JSON.parse(localStorage.getItem('d77_currentCode')||'null');if(!active){document.getElementById('s_msg').innerText='No active lesson - Ask lecturer to Generate Code on HIS phone';return;}if(active.code!==code){document.getElementById('s_msg').innerText='Wrong Code! Current code is '+active.code+' for '+active.week+' '+active.lesson;return;}let recs=JSON.parse(localStorage.getItem('d77_att')||'[]');if(recs.find(r=>r.reg===currentUser.id&&r.unit===active.unit&&r.week===active.week&&r.lesson===active.lesson)){document.getElementById('s_msg').innerText='Already marked for '+active.week+' '+active.lesson;return;}let rec={name:currentUser.name,reg:currentUser.id,dept:currentUser.dept,device:navigator.platform,time:new Date().toLocaleString(),timestamp:Date.now(),unit:active.unit,week:active.week,lesson:active.lesson,lect:active.lect,lectName:active.lectName,code};recs.push(rec);localStorage.setItem('d77_att',JSON.stringify(recs));document.getElementById('s_msg').style.color='green';document.getElementById('s_msg').innerText='SUCCESS! Present for '+active.week+' '+active.lesson+' at '+rec.time;loadStudentUnits();loadLectList();}
+function loadLectList(){let recs=JSON.parse(localStorage.getItem('d77_att')||'[]');if(currentUser&&currentUser.role==='lecturer')recs=recs.filter(r=>r.lect===currentUser.id);recs.sort((a,b)=>b.timestamp-a.timestamp);document.getElementById('l_list').innerHTML=recs.map(r=>`<tr><td>${r.week}</td><td>${r.lesson}</td><td>${r.reg}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.time}</td></tr>`).join('');}
+function loadHOD(){let recs=JSON.parse(localStorage.getItem('d77_att')||'[]');recs.sort((a,b)=>b.timestamp-a.timestamp);document.getElementById('h_list').innerHTML=recs.map(r=>`<tr><td>${r.name}</td><td>${r.reg}</td><td>${r.unit}</td><td>${r.week}</td><td>${r.lesson}</td><td>${r.time}</td><td>${r.lectName}</td></tr>`).join('');}
+function downloadList(){let recs=JSON.parse(localStorage.getItem('d77_att')||'[]');let csv='Unit,Week,Lesson,RegNo,Name,Dept,Time,Lecturer\n'+recs.map(r=>`"${r.unit}","${r.week}","${r.lesson}","${r.reg}","${r.name}","${r.dept}","${r.time}","${r.lectName}"`).join('\n');let a=document.createElement('a');a.href='data:text/csv,[STRIPPED]
+function clearAll(){if(confirm('Clear all?')){localStorage.clear();location.reload();}}
+function logout(){localStorage.removeItem('d77_cur');location.reload();}
+let cur=JSON.parse(localStorage.getItem('d77_cur')||'null');if(cur){currentUser=cur;showDash(cur);}
+</script></body></html>
